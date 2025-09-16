@@ -1,0 +1,211 @@
+-- Import into the tables  created 
+
+-- Customer Tables 
+
+INSERT INTO olist_customers (customer_id, customer_unique_id, customer_zip_code_prefix, customer_city, customer_state)
+SELECT 
+    customer_id,
+    customer_unique_id,
+    CAST(customer_zip_code_prefix AS INT),
+    customer_city,
+    customer_state
+FROM olist_customers_dataset_1
+;
+
+
+--Orders Table 
+
+
+INSERT INTO olist_orders (order_id, customer_id, order_status, order_purchase_timestamp, 
+                          order_approved_at, order_delivered_carrier_date, 
+                          order_delivered_customer_date, order_estimated_delivery_date)
+SELECT 
+    order_id,
+    customer_id,
+    order_status,
+    order_purchase_timestamp,
+    order_approved_at,
+    order_delivered_carrier_date,
+    order_delivered_customer_date,
+    order_estimated_delivery_date
+FROM olist_orders_dataset_1
+;
+
+
+-- Order Payments 
+
+INSERT INTO olist_order_payments (order_id, payment_sequential, payment_type, 
+                                  payment_installments, payment_value)
+SELECT 
+    order_id,
+    payment_sequential,
+    payment_type,
+    payment_installments,
+    payment_value
+FROM olist_order_payments_dataset_1
+;
+
+
+-- Products 
+
+INSERT INTO olist_products (product_id, product_category_name, product_name_length, 
+                            product_description_length, product_photos_qty, 
+                            product_weight_g, product_length_cm, product_height_cm, product_width_cm)
+SELECT 
+    product_id,
+    product_category_name,
+    product_name_lenght,         
+    product_description_lenght,  
+    product_photos_qty,
+    product_weight_g,
+    product_length_cm,
+    product_height_cm,
+    product_width_cm
+FROM olist_products_dataset_1
+;
+
+
+-- Sellers 
+
+INSERT INTO olist_sellers (seller_id, seller_zip_code_prefix, seller_city, seller_state)
+SELECT 
+    seller_id,
+    CAST(seller_zip_code_prefix AS INT),
+    seller_city,
+    seller_state
+FROM olist_sellers_dataset_1
+;
+
+
+-- Order Items 
+
+INSERT INTO olist_order_items (order_id, order_item_id, product_id, seller_id, 
+                               shipping_limit_date, price, freight_value)
+SELECT 
+    order_id,
+    order_item_id,
+    product_id,
+    seller_id,
+    shipping_limit_date,
+    CAST(price AS DECIMAL(10,2)),
+    CAST(freight_value AS DECIMAL(10,2))
+FROM olist_order_items_dataset_1
+;
+
+
+-- Order Reviews
+
+INSERT INTO olist_order_reviews (
+    review_id, 
+    order_id, 
+    review_score, 
+    review_comment_title, 
+    review_comment_message, 
+    review_creation_date, 
+    review_answer_timestamp
+)
+SELECT 
+    review_id, 
+    order_id, 
+    review_score, 
+    review_comment_title, 
+    review_comment_message, 
+    review_creation_date, 
+    review_answer_timestamp
+FROM (
+    SELECT 
+        review_id, 
+        order_id, 
+        review_score, 
+        review_comment_title, 
+        review_comment_message, 
+        review_creation_date, 
+        review_answer_timestamp,
+        ROW_NUMBER() OVER (PARTITION BY review_id ORDER BY review_creation_date ASC) AS rn
+    FROM olist_order_reviews_dataset_1
+) t
+WHERE rn = 1
+;
+
+
+-- Geolocation 
+
+INSERT INTO olist_geolocation (geolocation_zip_code_prefix, geolocation_lat, geolocation_lng, 
+                               geolocation_city, geolocation_state)
+SELECT 
+    CAST(geolocation_zip_code_prefix AS INT),
+    NULLIF(geolocation_lat, '') , 
+    NULLIF(geolocation_lng, '') ,
+    geolocation_city,
+    geolocation_state
+FROM olist_geolocation_dataset_2
+;
+
+
+-- Product Category Name Translation  
+
+-- Rename the column headers so i can successfully instert into the table i created 
+
+EXEC sp_rename 'product_category_name_translation_2.[column1]', 'product_category_name', 'COLUMN';
+EXEC sp_rename 'product_category_name_translation_2.[column2]', 'product_category_name_english', 'COLUMN';
+
+
+SELECT TOP 5 * 
+FROM product_category_name_translation_2;
+
+-- I can see product_category_name and product_category_name_english in the data 
+-- To delete it 
+
+DELETE FROM product_category_name_translation_2
+WHERE product_category_name = 'product_category_name'
+  AND product_category_name_english = 'product_category_name_english'
+  ;
+
+
+  
+SELECT *
+FROM product_category_name_translation_2
+
+-- To re insert 
+
+INSERT INTO olist_product_category_name_translation (product_category_name, product_category_name_english)
+SELECT 
+    product_category_name,
+    product_category_name_english
+FROM product_category_name_translation_2
+;
+
+SELECT *
+FROM olist_product_category_name_translation
+;
+
+--Drop the initial tables 
+
+DROP TABLE olist_customers_dataset_1;
+DROP TABLE olist_geolocation_dataset_2;
+DROP TABLE olist_order_items_dataset_1;
+DROP TABLE olist_order_payments_dataset_1;
+DROP TABLE olist_order_reviews_dataset_1;
+DROP TABLE olist_orders_dataset_1;
+DROP TABLE product_category_name_translation_2;
+DROP TABLE olist_products_dataset_1;
+DROP TABLE olist_sellers_dataset_1;
+
+
+-- Check the current tables 
+
+SELECT TABLE_NAME
+FROM INFORMATION_SCHEMA.TABLES
+WHERE TABLE_TYPE = 'BASE TABLE';
+
+
+SELECT COUNT(*) AS total_rows FROM olist_customers;
+SELECT COUNT(*) AS total_rows FROM olist_orders;
+SELECT COUNT(*) AS total_rows FROM olist_order_items;
+
+
+-- View First 10 Customers 
+
+SELECT TOP 10 *
+FROM olist_customers
+;
