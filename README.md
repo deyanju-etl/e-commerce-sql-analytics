@@ -1,4 +1,4 @@
-#   E-commerce SQL Analytics Project  
+#   E-commerce SQL Analytics Project using Microsoft SQL 
 
 This project explores an E-commerce dataset using SQL.  
 The goal was to perform **end-to-end data analysis** starting from table creation and data import, through exploratory SQL queries, and ending with integration into Power BI dashboards.  
